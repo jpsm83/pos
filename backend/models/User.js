@@ -1,12 +1,27 @@
 const mongoose = require("mongoose");
 
+const roles = [
+  "Manager",
+  "Bartender",
+  "Waiter",
+  "Head Chef",
+  "Sous Chef",
+  "Line Cooks",
+  "Kitchen Porter",
+  "Cleaner",
+  "Security",
+  "Host",
+  "Runner",
+  "Supervisor",
+  "Client",
+];
 const userSchema = new mongoose.Schema(
   {
-    username: { type: String, required: true },
+    username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     role: {
       type: String,
-      enum: ["Manager", "Employee", "Supervisor", "Client"],
+      enum: roles,
       required: true,
     },
     firstName: { type: String, required: true },
@@ -16,7 +31,8 @@ const userSchema = new mongoose.Schema(
     address: String,
     joiningDate: Date,
     terminateDate: Date,
-    onDuty: { type: Boolean, default: false },
+    active: { type: Boolean, default: true },
+    onDuty: { type: Boolean, default: false},
     business: { type: mongoose.Schema.Types.ObjectId, ref: "Business" },
   },
   { timestamps: true }
