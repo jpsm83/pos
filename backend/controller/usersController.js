@@ -1,8 +1,8 @@
+const asyncHandler = require("express-async-handler");
+const bcrypt = require("bcrypt");
 const User = require("../models/User");
 const Pos = require("../models/Pos");
 const Order = require("../models/Order");
-const asyncHandler = require("express-async-handler");
-const bcrypt = require("bcrypt");
 
 // @desc    Get all users
 // @route   GET /users
@@ -64,12 +64,12 @@ const createNewUser = asyncHandler(async (req, res) => {
       .status(201)
       .json({ message: `New user ${userObj.username} created successfully!` });
   } else {
-    return res.status(400).json({ message: "User creation failed!" });
+    return res.status(400).json({ message: "Failed to create User!" });
   }
 });
 
 // @desc    Update user
-// @route   PATCH /users
+// @route   PATCH /users/:id
 // @access  Private
 const updateUser = asyncHandler(async (req, res) => {
   const {
@@ -119,7 +119,7 @@ const updateUser = asyncHandler(async (req, res) => {
 });
 
 // @desc    Delete user
-// @route   DELETE /users
+// @route   DELETE /users/:id
 // @access  Private
 const deleteUser = asyncHandler(async (req, res) => {
   const { id } = req.body;

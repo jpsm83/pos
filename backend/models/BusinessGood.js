@@ -30,7 +30,7 @@ const businessGoodSchema = new mongoose.Schema(
     available: Boolean,
     price: Number,
     quantity: Number,
-    supplyerGoods: [{ type: mongoose.Schema.Types.ObjectId, ref: "SupplyerGood" }],
+    supplierGoods: [{ type: mongoose.Schema.Types.ObjectId, ref: "SupplierGood" }],
     busuness: { type: mongoose.Schema.Types.ObjectId, ref: "Business" },
   },
   {

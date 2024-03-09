@@ -1,0 +1,200 @@
+const asyncHandler = require("express-async-handler");
+const bcrypt = require("bcrypt");
+const Business = require("../models/Business");
+const User = require("../models/User");
+const Pos = require("../models/Pos");
+const Supplier = require("../models/Supplier");
+const BusinessGood = require("../models/BusinessGood");
+const SupplierGood = require("../models/SupplierGood");
+
+// @desc    Get all businesses
+// @route   GET /business
+// @access  Private
+const getBusinesses = asyncHandler(async (req, res) => {
+  const businesses = await Business.find().select("-password").lean();
+  if (!businesses?.length) {
+    return res.status(404).json({ message: "No businesses found!" });
+  }
+  res.json(businesses);
+});
+
+// @desc    Create new business
+// @route   POST /business
+// @access  Private
+const createNewBusiness = asyncHandler(async (req, res) => {
+  const {
+    tradeName,
+    legalName,
+    email,
+    password,
+    address,
+    phoneNumber,
+    taxNumber,
+    contactPerson,
+  } = req.body;
+
+  // confirm data is not missing
+  if (
+    !tradeName ||
+    !legalName ||
+    !email ||
+    !password ||
+    !address ||
+    !phoneNumber ||
+    !taxNumber ||
+    !contactPerson
+  ) {
+    return res.status(400).json({ message: "All fields are required!" });
+  }
+
+  // check for duplcates
+  const duplicateBusiness = await Business.findOne({ tradeName }).lean().exec();
+
+  if (duplicateBusiness) {
+    return res.status(409).json({ message: "Business name already exists!" });
+  }
+
+  // hash password
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const businessObj = new Business({
+    tradeName,
+    legalName,
+    email,
+    password: hashedPassword,
+    address,
+    phoneNumber,
+    taxNumber,
+    contactPerson,
+  });
+
+  // create business
+  const business = await Business.create(businessObj);
+
+  if (business) {
+    res.status(201).json({ message: "Business created successfully!" });
+  } else {
+    res.status(500).json({ message: "Failed to create business!" });
+  }
+});
+
+// @desc    Update business
+// @route   PATH /business/:id
+// @access  Private
+const updateBusiness = asyncHandler(async (req, res) => {
+  const {
+    id,
+    tradeName,
+    legalName,
+    email,
+    password,
+    address,
+    phoneNumber,
+    taxNumber,
+    contactPerson,
+  } = req.body;
+
+  // confirm data is not missing
+  if (
+    !id ||
+    !tradeName ||
+    !legalName ||
+    !email ||
+    !address ||
+    !phoneNumber ||
+    !taxNumber ||
+    !contactPerson
+  ) {
+    return res.status(400).json({ message: "All fields are required!" });
+  }
+
+  // check for business
+  const business = await Business.findById(id).exec();
+
+  if (!business) {
+    return res.status(404).json({ message: "Business not found!" });
+  }
+
+  // check for duplcates
+  const duplicateBusiness = await Business.findOne({ tradeName }).lean().exec();
+  if (duplicateBusiness && duplicateBusiness._id.toString() !== id) {
+    return res.status(409).json({ message: "Business name already exists!" });
+  }
+
+  business.tradeName = tradeName;
+  business.legalName = legalName;
+  business.email = email;
+  business.address = address;
+  business.phoneNumber = phoneNumber;
+  business.taxNumber = taxNumber;
+  business.contactPerson = contactPerson;
+
+  // if password is provided, hash it
+  if (password) {
+    business.password = await bcrypt.hash(password, 10);
+  }
+
+  const updatedBusiness = await business.save();
+
+  res.json({
+    message: `Business ${updatedBusiness.tradeName} updated successfully!`,
+  });
+});
+
+// @desc    Delete business
+// @route   DELETE /business/:id
+// @access  Private
+const deleteBusiness = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ message: "Business ID is required!" });
+    }
+
+    const business = await Business.findById(id).exec();
+
+    if (!business) {
+      return res.status(404).json({ message: "Business not found!" });
+    }
+
+    // Function to delete children data
+    const deleteChildrenData = async (
+      childrenModel,
+      propertyToFind,
+      propertyId
+    ) => {
+      await childrenModel.deleteMany({ [propertyToFind]: propertyId }).exec();
+    };
+
+    // Delete suppliers related data
+    const suppliersIds = business.suppliers;
+    if (suppliersIds.length > 0) {
+      for (let i = 0; i < suppliersIds.length; i++) {
+        await deleteChildrenData(SupplierGood, "supplier", suppliersIds[i]);
+      }
+    }
+
+    // Delete all related data
+    await User.deleteMany({ business: id }).exec();
+    await Pos.deleteMany({ business: id }).exec();
+    await Supplier.deleteMany({ business: id }).exec();
+    await BusinessGood.deleteMany({ business: id }).exec();
+
+    await business.deleteOne();
+
+    const reply = `Business ${business.tradeName} deleted successfully!`;
+
+    res.json(reply);
+  } catch (error) {
+    console.error("Error deleting business:", error);
+    res.status(500).json({ message: "Error deleting business" });
+  }
+});
+
+module.exports = {
+  getBusinesses,
+  createNewBusiness,
+  updateBusiness,
+  deleteBusiness,
+};

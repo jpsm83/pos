@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const supplyerSchema = new mongoose.Schema(
+const supplierSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true },
     address: { type: String, required: true },
@@ -8,7 +8,7 @@ const supplyerSchema = new mongoose.Schema(
     phoneNumber: { type: String, required: true },
     taxNumber: { type: String, required: true, unique: true },
     contactPerson: { type: String, required: true },
-    supplyerGoods: [{ type: mongoose.Schema.Types.ObjectId, ref: "SupplyerGood" }],
+    supplierGoods: [{ type: mongoose.Schema.Types.ObjectId, ref: "SupplierGood" }],
     business: { type: mongoose.Schema.Types.ObjectId, ref: "Business" },
   },
   {
@@ -16,4 +16,4 @@ const supplyerSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Supplyer", supplyerSchema);
+module.exports = mongoose.model("Supplier", supplierSchema);
