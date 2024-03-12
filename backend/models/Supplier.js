@@ -9,7 +9,7 @@ const supplierSchema = new mongoose.Schema(
     taxNumber: { type: String, required: true, unique: true },
     contactPerson: { type: String, required: true },
     supplierGoods: [{ type: mongoose.Schema.Types.ObjectId, ref: "SupplierGood" }],
-    business: { type: mongoose.Schema.Types.ObjectId, ref: "Business" },
+    business: { type: mongoose.Schema.Types.ObjectId, ref: "Business", required: true },
   },
   {
     timestamps: true,

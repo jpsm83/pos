@@ -18,6 +18,21 @@ const getBusinesses = asyncHandler(async (req, res) => {
   res.json(businesses);
 });
 
+// @desc    Get business by ID
+// @route   GET /business/:id
+// @access  Private
+const getBusinessById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const business = await Business.findById(id).select("-password").lean().exec();
+
+  if(!business.length) {
+    return res.status(404).json({ message: "Business not found!" });
+  }
+
+  res.json(business);
+})
+
 // @desc    Create new business
 // @route   POST /business
 // @access  Private
@@ -57,7 +72,7 @@ const createNewBusiness = asyncHandler(async (req, res) => {
   // hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const businessObj = new Business({
+  const businessObj = {
     tradeName,
     legalName,
     email,
@@ -66,13 +81,13 @@ const createNewBusiness = asyncHandler(async (req, res) => {
     phoneNumber,
     taxNumber,
     contactPerson,
-  });
+  };
 
   // create business
-  const business = await Business.create(businessObj);
+  const newBusiness = await Business.create(businessObj);
 
-  if (business) {
-    res.status(201).json({ message: "Business created successfully!" });
+  if (newBusiness) {
+    res.status(201).json({ message: `Business ${tradeName} created successfully!` });
   } else {
     res.status(500).json({ message: "Failed to create business!" });
   }
@@ -82,8 +97,8 @@ const createNewBusiness = asyncHandler(async (req, res) => {
 // @route   PATH /business/:id
 // @access  Private
 const updateBusiness = asyncHandler(async (req, res) => {
+  const { id } = req.params;
   const {
-    id,
     tradeName,
     legalName,
     email,
@@ -145,9 +160,9 @@ const updateBusiness = asyncHandler(async (req, res) => {
 // @route   DELETE /business/:id
 // @access  Private
 const deleteBusiness = asyncHandler(async (req, res) => {
-  try {
-    const { id } = req.body;
+  const { id } = req.params;
 
+  try {
     if (!id) {
       return res.status(400).json({ message: "Business ID is required!" });
     }
@@ -194,6 +209,7 @@ const deleteBusiness = asyncHandler(async (req, res) => {
 
 module.exports = {
   getBusinesses,
+  getBusinessById,
   createNewBusiness,
   updateBusiness,
   deleteBusiness,

@@ -8,10 +8,16 @@ const supplierGoodSchema = new mongoose.Schema(
     name: { type: String, required: true, unique: true },
     description: { type: String, required: true },
     category: { type: String, enum: ["Food", "Beverage"] },
+    image: {
+      type: String,
+      default: function() {
+        return this.category === "Beverage" ? '../public/images/drink.png' : '../public/images/food.png';
+      }
+    },
     price: Number,
     available: Boolean,
     quantity: Number,
-    supplier: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
+    supplier: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier", required: true },  
   },
   {
     timestamps: true,

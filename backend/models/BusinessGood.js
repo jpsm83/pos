@@ -3,35 +3,28 @@
 
 const mongoose = require("mongoose");
 
-const CATEGORIES = [
-  "Starter",
-  "Appertizer",
-  "Main",
-  "Salad",
-  "Desert",
-  "Addon",
-  "Coffee",
-  "Soft Drink",
-  "Juice",
-  "Beer",
-  "Wine",
-  "Spirit",
-  "Coktail",
-  "Mixer",
-  "Upgrade",
-  "Merchandise",
-];
+const drinks = ['Coffee', 'Soft Drink', 'Juice', 'Beer', 'Wine', 'Spirit', 'Coktail', 'Mixer', 'Drink Upgrade'];
+const foods = ['Starter', 'Appertizer', 'Main', 'Salad', 'Desert', 'Addon'];
+const merchandise = ['Tshirt', 'Cap', 'Mug', 'Keychain', 'Bottle Opener', 'Bag', 'Other'];
+
+const CATEGORIES = drinks + foods + merchandise;
 
 const businessGoodSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true },
     description: { type: String, required: true },
     category: { type: String, enum: CATEGORIES },
+    image: {
+      type: String,
+      default: function() {
+        return drinks.includes(this.category) ? '../public/images/drink.png' : foods.includes(this.category) ? '../public/images/food.png' : '../public/images/merchandise.png';
+      }
+    },
     available: Boolean,
     price: Number,
     quantity: Number,
     supplierGoods: [{ type: mongoose.Schema.Types.ObjectId, ref: "SupplierGood" }],
-    busuness: { type: mongoose.Schema.Types.ObjectId, ref: "Business" },
+    busuness: { type: mongoose.Schema.Types.ObjectId, ref: "Business", required: true },
   },
   {
     timestamps: true,

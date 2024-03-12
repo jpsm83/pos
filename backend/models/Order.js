@@ -9,9 +9,9 @@ const orderSchema = new mongoose.Schema(
       enum: ["Open", "Payed", "Wasted", "Cancelled", "Invitation"],
     },
     orderStatus: { type: String, enum: ["Sent", "Done", "Dont Make", "Hold"] },
-    pos: { type: mongoose.Schema.Types.ObjectId, ref: "Pos" },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    businessGoods: [{ type: mongoose.Schema.Types.ObjectId, ref: "BusinessGood" }],
+    pos: { type: mongoose.Schema.Types.ObjectId, ref: "Pos", required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    businessGoods: [{ type: mongoose.Schema.Types.ObjectId, ref: "BusinessGood", required: true }],
   },
   { timestamps: true }
 );

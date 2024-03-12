@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const STATUS_OPTIONS = ["Occupied", "Available", "Reserved", "Bill", "Closed"];
+const STATUS_OPTIONS = ["Occupied", "Reserved", "Bill", "Closed"];
 
 const posSchema = new mongoose.Schema(
   {
@@ -9,9 +9,9 @@ const posSchema = new mongoose.Schema(
     guests: { type: Number, required: true },
     clientName: String,
     posNumber: { type: Number, min: 100, max: 150, required: true },
-    status: { type: String, enum: STATUS_OPTIONS },
-    business: { type: mongoose.Schema.Types.ObjectId, ref: "Business" },
-    openedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    status: { type: String, enum: STATUS_OPTIONS, default: "Occupied", required: true},
+    business: { type: mongoose.Schema.Types.ObjectId, ref: "Business", required: true },
+    openedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     closedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     orders: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
   },

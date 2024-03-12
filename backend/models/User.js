@@ -18,6 +18,7 @@ const roles = [
 const userSchema = new mongoose.Schema(
   {
     username: { type: String, required: true, unique: true },
+    photo: { type: String, default: "../public/images/avatar.png"},
     password: { type: String, required: true },
     role: {
       type: String,
@@ -33,7 +34,7 @@ const userSchema = new mongoose.Schema(
     terminateDate: Date,
     active: { type: Boolean, default: true },
     onDuty: { type: Boolean, default: false},
-    business: { type: mongoose.Schema.Types.ObjectId, ref: "Business" },
+    business: { type: mongoose.Schema.Types.ObjectId, ref: "Business", required: true},
   },
   { timestamps: true }
 );

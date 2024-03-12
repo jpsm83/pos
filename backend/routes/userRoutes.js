@@ -4,7 +4,10 @@ const usersController = require("../controller/usersController");
 
 router.route("/")
     .get(usersController.getUsers)
-    .post(usersController.createNewUser)
+    .post(usersController.createNewUser);
+    
+router.route("/:id")
+    .get(usersController.getUserById)
     .patch(usersController.updateUser)
     .delete(usersController.deleteUser);
 

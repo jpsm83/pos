@@ -15,11 +15,26 @@ const getUsers = asyncHandler(async (req, res) => {
   res.json(users);
 });
 
+// @desc    Get user by ID
+// @route   GET /users/:id
+// @access  Private
+const getUserById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const user = await User.findById(id).select("-password").lean().exec();
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found!" });
+  }
+
+  res.json(user);
+});
+
 // @desc    Create new user
 // @route   POST /users
 // @access  Private
 const createNewUser = asyncHandler(async (req, res) => {
-  const { username, email, password, role, firstName, lastName, phoneNumber } =
+  const { username, email, password, role, firstName, lastName, phoneNumber, business } =
     req.body;
 
   // confirm data is not missing
@@ -30,7 +45,8 @@ const createNewUser = asyncHandler(async (req, res) => {
     !role ||
     !firstName ||
     !lastName ||
-    !phoneNumber
+    !phoneNumber ||
+    !business
   ) {
     return res.status(400).json({ message: "All fields are required!" });
   }
@@ -45,7 +61,7 @@ const createNewUser = asyncHandler(async (req, res) => {
   // hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const userObj = new User({
+  const userObj = {
     username,
     email,
     password: hashedPassword,
@@ -53,13 +69,14 @@ const createNewUser = asyncHandler(async (req, res) => {
     firstName,
     lastName,
     phoneNumber,
-  });
+    business,
+  };
 
   // create user
-  const user = await User.create(userObj);
+  const newUser = await User.create(userObj);
 
   // confirm user was created
-  if (user) {
+  if (newUser) {
     return res
       .status(201)
       .json({ message: `New user ${userObj.username} created successfully!` });
@@ -72,20 +89,30 @@ const createNewUser = asyncHandler(async (req, res) => {
 // @route   PATCH /users/:id
 // @access  Private
 const updateUser = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
   const {
-    id,
     username,
-    email,
+    photo,
     password,
     role,
     firstName,
     lastName,
+    email,
     phoneNumber,
+    active,
+    onDuty,
+    business,
   } = req.body;
 
   // confirm data is not missing
-  if ((!id, !username, !email, !role, !firstName, !lastName, !phoneNumber)) {
-    return res.status(400).json({ message: "All fields are required!" });
+  if ((!id, !username, !email, !role, !firstName, !lastName, !phoneNumber, !business)) {
+    return res
+      .status(400)
+      .json({
+        message:
+          "Username, email, role, firstName, lastName, phoneNumber and business are required!",
+      });
   }
 
   // check for user
@@ -102,11 +129,15 @@ const updateUser = asyncHandler(async (req, res) => {
   }
 
   user.username = username;
-  user.email = email;
+  user.photo = photo ? photo : user.photo;
   user.role = role;
   user.firstName = firstName;
   user.lastName = lastName;
+  user.email = email;
   user.phoneNumber = phoneNumber;
+  user.active = active ? active : user.active;
+  user.onDuty = onDuty ? onDuty : user.onDuty;
+  user.business = business ? business : user.business;
 
   // if password is provided, hash it
   if (password) {
@@ -122,7 +153,7 @@ const updateUser = asyncHandler(async (req, res) => {
 // @route   DELETE /users/:id
 // @access  Private
 const deleteUser = asyncHandler(async (req, res) => {
-  const { id } = req.body;
+  const { id } = req.params;
 
   if (!id) {
     return res.status(400).json({ message: "User ID is required!" });
@@ -157,4 +188,10 @@ const deleteUser = asyncHandler(async (req, res) => {
   res.json(reply);
 });
 
-module.exports = { getUsers, createNewUser, updateUser, deleteUser };
+module.exports = {
+  getUsers,
+  getUserById,
+  createNewUser,
+  updateUser,
+  deleteUser,
+};
