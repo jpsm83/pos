@@ -15,7 +15,7 @@ const businessGoodSchema = new mongoose.Schema(
         return drinks.includes(this.category) ? '../public/images/drink.png' : foods.includes(this.category) ? '../public/images/food.png' : '../public/images/merchandise.png';
       }
     },
-    available: Boolean,
+    available: { type: Boolean, required: true, default: true },
     price: Number,
     quantity: Number,
     supplierGoods: [{ type: mongoose.Schema.Types.ObjectId, ref: "SupplierGood" }],

@@ -52,6 +52,7 @@ const createNewBusiness = asyncHandler(async (req, res) => {
     phoneNumber,
     taxNumber,
     contactPerson,
+    subscription,
   } = req.body;
 
   // confirm data is not missing
@@ -66,7 +67,8 @@ const createNewBusiness = asyncHandler(async (req, res) => {
     !postCode ||
     !phoneNumber ||
     !taxNumber ||
-    !contactPerson
+    !contactPerson ||
+    !subscription
   ) {
     return res
       .status(400)
@@ -99,6 +101,7 @@ const createNewBusiness = asyncHandler(async (req, res) => {
     phoneNumber,
     taxNumber,
     contactPerson,
+    subscription,
   };
 
   // create business
@@ -131,6 +134,7 @@ const updateBusiness = asyncHandler(async (req, res) => {
     phoneNumber,
     taxNumber,
     contactPerson,
+    subscription,
   } = req.body;
 
   // confirm data is not missing
@@ -145,7 +149,8 @@ const updateBusiness = asyncHandler(async (req, res) => {
     !postCode ||
     !phoneNumber ||
     !taxNumber ||
-    !contactPerson
+    !contactPerson ||
+    !subscription
   ) {
     return res.status(400).json({ message: "All fields are required!" });
   }
@@ -173,6 +178,7 @@ const updateBusiness = asyncHandler(async (req, res) => {
   business.phoneNumber = phoneNumber || business.phoneNumber;
   business.taxNumber = taxNumber || business.taxNumber;
   business.contactPerson = contactPerson || business.contactPerson;
+  business.subscription = subscription || business.subscription;
 
   // if password is provided, hash it
   if (password) {

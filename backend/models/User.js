@@ -35,10 +35,10 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     phoneNumber: { type: String, required: true },
     address: String,
-    joiningDate: Date,
+    joinDate: { type: Date, default: Date.now, required: true},
     terminateDate: Date,
-    active: { type: Boolean, default: true },
-    onDuty: { type: Boolean, default: false},
+    active: { type: Boolean, required: true, default: true },
+    onDuty: { type: Boolean, required: true, default: false },
     business: { type: mongoose.Schema.Types.ObjectId, ref: "Business", required: true},
   },
   { timestamps: true }

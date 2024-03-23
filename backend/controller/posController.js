@@ -34,7 +34,7 @@ const getPosById = asyncHandler(async (req, res) => {
 const getPosByBusinessId = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const pos = await Pos.find({ business: id }).lean().exec();
-  
+
   if (!pos) {
     return res.status(404).json({ message: "No pos found!" });
   }
@@ -51,8 +51,7 @@ const createNewPos = asyncHandler(async (req, res) => {
   // confirm data is not missing
   if (!guests || !posNumber || !status || !business || !openedBy) {
     return res.status(400).json({
-      message:
-        "Guests, posNumber, status, business and openedBy are required!",
+      message: "Guests, posNumber, status, business and openedBy are required!",
     });
   }
 
@@ -65,7 +64,9 @@ const createNewPos = asyncHandler(async (req, res) => {
     .exec();
 
   if (duplicatePos) {
-    return res.status(409).json({ message: "Pos already exists and it is opened!" });
+    return res
+      .status(409)
+      .json({ message: "Pos already exists and it is opened!" });
   }
 
   const posObj = {
@@ -92,7 +93,8 @@ const createNewPos = asyncHandler(async (req, res) => {
 // @access  Private
 const updatePos = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { closedAt, clientName, status, closedBy, orders } = req.body;
+  const { closedAt, guest, clientName, posNumber, status, closedBy, orders } =
+    req.body;
   try {
     // Check for pos
     const pos = await Pos.findById(id);
@@ -101,7 +103,24 @@ const updatePos = asyncHandler(async (req, res) => {
       return res.status(404).json({ message: "Pos not found!" });
     }
 
+    // check for duplicates posNumbers
+    const newPosNumberAlreadyExist = await Pos.findOne({
+      _id: { $ne: id },
+      posNumber,
+      status: { $ne: "Closed" },
+    })
+      .lean()
+      .exec();
+
+    if (newPosNumberAlreadyExist) {
+      return res
+        .status(409)
+        .json({ message: "Pos already exists and it is opened!" });
+    }
+
     pos.clientName = clientName ? clientName : pos.clientName;
+    pos.guests = guest ? guest : pos.guests;
+    pos.posNumber = posNumber ? posNumber : pos.posNumber;
     pos.status = status ? status : pos.status;
     pos.orders = orders ? orders : pos.orders;
 

@@ -18,6 +18,7 @@ const businessSchema = new mongoose.Schema(
       type: String,
       enum: ["Free", "Basic", "Premium"],
       default: "Free",
+      required: true,
     },
   },
   { timestamps: true }

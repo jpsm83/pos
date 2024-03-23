@@ -6,46 +6,46 @@ const SupplierGood = require("../models/SupplierGood");
 // @route   GET /supplierGoods
 // @access  Private
 const getSupplierGoods = asyncHandler(async (req, res) => {
-      // Fetch all suppliers from the database
-    const supplierGoods = await SupplierGood.find().lean();
-    // if no supplier goods are found, return a 404 status code with a message
-    if (!supplierGoods) {
-        return res.status(404).json({ message: "No supplier goods found!" });
-    }
-    //return the supplier goods
-    res.json(supplierGoods);
+  // Fetch all suppliers from the database
+  const supplierGoods = await SupplierGood.find().lean();
+  // if no supplier goods are found, return a 404 status code with a message
+  if (!supplierGoods) {
+    return res.status(404).json({ message: "No supplier goods found!" });
+  }
+  //return the supplier goods
+  res.json(supplierGoods);
 });
 
 // @desc    Get supplier good by ID
 // @route   GET /supplierGoods/:id
 // @access  Private
 const getSupplierGoodById = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    // Fetch the supplier good with the given ID from the database
-    const supplierGood = await SupplierGood.findById(id).lean();
+  const { id } = req.params;
+  // Fetch the supplier good with the given ID from the database
+  const supplierGood = await SupplierGood.findById(id).lean();
 
-    if (!supplierGood) {
-        // If the supplier good is not found, return a 404 status code with a message
-        return res.status(404).json({ message: "Supplier good not found!" });
-    }
+  if (!supplierGood) {
+    // If the supplier good is not found, return a 404 status code with a message
+    return res.status(404).json({ message: "Supplier good not found!" });
+  }
 
-    // Return the supplier good
-    res.json(supplierGood);
+  // Return the supplier good
+  res.json(supplierGood);
 });
 
 // @desc    Get supplier goods by supplier ID
 // @route   GET /supplierGoods/supplier/:id
 // @access  Private
 const getSupplierGoodsBySupplierId = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    // Fetch supplier goods with the given supplier ID from the database
-    const supplierGoods = await SupplierGood.find({ supplier: id }).lean();
-    // if no supplier goods are found, return a 404 status code with a message
-    if (!supplierGoods) {
-        return res.status(404).json({ message: "No supplier goods found!" });
-    }
-    // Return the supplier goods
-    res.json(supplierGoods);
+  const { id } = req.params;
+  // Fetch supplier goods with the given supplier ID from the database
+  const supplierGoods = await SupplierGood.find({ supplier: id }).lean();
+  // if no supplier goods are found, return a 404 status code with a message
+  if (!supplierGoods) {
+    return res.status(404).json({ message: "No supplier goods found!" });
+  }
+  // Return the supplier goods
+  res.json(supplierGoods);
 });
 
 // @desc    Create new supplier good
@@ -60,8 +60,10 @@ const createNewSupplierGood = asyncHandler(async (req, res) => {
     measurementUnit,
     measurementValue,
     wholePrice,
+    pricePerMeasurementUnit,
     virtualQuantityAvailable,
     realQuantityAvailable,
+    minimunQuantityRequired,
     currentlyInUse,
     supplier,
   } = req.body;
@@ -78,25 +80,25 @@ const createNewSupplierGood = asyncHandler(async (req, res) => {
     !pricePerMeasurementUnit ||
     !virtualQuantityAvailable ||
     !realQuantityAvailable ||
-    !currentlyInUse ||
+    !minimunQuantityRequired ||
+    currentlyInUse === undefined ||
     !supplier
   ) {
-    return res
-      .status(400)
-      .json({
-        message:
-          "Name, keyword, category, measurementType, measurementUnit, measurementValue, wholePrice, virtualQuantityAvailable, realQuantityAvailable, currentlyInUse and supplier are required!",
-      });
+    console.log(req.body);
+    return res.status(400).json({
+      message:
+        "Name, keyword, category, measurementType, measurementUnit, measurementValue, wholePrice, pricePerMeasurementUnit, virtualQuantityAvailable, realQuantityAvailable, minimunQuantityRequired, currentlyInUse and supplier are required!",
+    });
   }
 
-  // check if the supplier exists
-  const supplierExists = await Supplier.findOne({ name }).lean();
-  if (supplierExists) {
+  // check if the supplier good exists
+  const supplierGoodExists = await SupplierGood.findOne({ name }).lean();
+  if (supplierGoodExists) {
     return res.status(400).json({ message: "Supplier good already exist!" });
   }
 
-  // Create a new supplier good
-  const supplierGood = await SupplierGood.create({
+  // Create a supplier good object
+  const supplierGoodObj = {
     name,
     keyword,
     category,
@@ -104,13 +106,15 @@ const createNewSupplierGood = asyncHandler(async (req, res) => {
     measurementUnit,
     measurementValue,
     wholePrice,
+    pricePerMeasurementUnit,
     virtualQuantityAvailable,
     realQuantityAvailable,
+    minimunQuantityRequired,
     currentlyInUse,
     supplier,
-  });
+  };
 
-  const newSupplierGood = await supplierGood.crate(supplierGood);
+  const newSupplierGood = await SupplierGood.create(supplierGoodObj);
 
   if (newSupplierGood) {
     res
@@ -125,77 +129,110 @@ const createNewSupplierGood = asyncHandler(async (req, res) => {
 // @route   PUT /supplierGoods/:id
 // @access  Private
 const updateSupplierGood = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const {
-        name,
+  const { id } = req.params;
+  const {
+    name,
     keyword,
+    description,
     category,
+    image,
     measurementType,
     measurementUnit,
     measurementValue,
     wholePrice,
+    pricePerMeasurementUnit,
     virtualQuantityAvailable,
     realQuantityAvailable,
+    minimunQuantityRequired,
     currentlyInUse,
     supplier,
-    } = req.body;
+  } = req.body;
 
-    // Fetch the supplier good with the given ID from the database
-    const supplierGood = await Supplier.findById(id);
+  // Fetch the supplier good with the given ID from the database
+  const supplierGood = await SupplierGood.findById(id);
 
-    if (!supplierGood) {
-        // If the supplier good is not found, return a 404 status code with a message
-        return res.status(404).json({ message: "Supplier good not found!" });
-    }
+  if (!supplierGood) {
+    // If the supplier good is not found, return a 404 status code with a message
+    return res.status(404).json({ message: "Supplier good not found!" });
+  }
 
-    // Update the supplier good details
-    supplierGood.name = name || supplierGood.name;
-    supplierGood.keyword = keyword || supplierGood.keyword;
-    supplierGood.category = category || supplierGood.category;
-    supplierGood.measurementType = measurementType || supplierGood.measurementType;
-    supplierGood.measurementUnit = measurementUnit || supplierGood.measurementUnit;
-    supplierGood.measurementValue = measurementValue || supplierGood.measurementValue;
-    supplierGood.wholePrice = wholePrice || supplierGood.wholePrice;
-    supplierGood.virtualQuantityAvailable = virtualQuantityAvailable || supplierGood.virtualQuantityAvailable;
-    supplierGood.realQuantityAvailable = realQuantityAvailable || supplierGood.realQuantityAvailable;
-    supplierGood.currentlyInUse = currentlyInUse || supplierGood.currentlyInUse;
-    supplierGood.supplier = supplier || supplierGood.supplier;
+  // check for duplicates posNumbers
+  const newNameAlreadyExist = await SupplierGood.findOne({
+    _id: { $ne: id },
+    name,
+  })
+    .lean()
+    .exec();
 
-    // Save the updated supplier good to the database
-    const updatedSupplierGood = await supplierGood.save();
+  if (newNameAlreadyExist) {
+    return res
+      .status(409)
+      .json({
+        message: `Supplier good ${name} already exists on this supplier!`,
+      });
+  }
 
-    if (updatedSupplierGood) {
-        res.json({ message: `Supplier good ${name} updated successfully!` });
-    } else {
-        res.status(500).json({ message: "Failed to update supplier good!" });
-    }
+  // Update the supplier good details
+  supplierGood.name = name || supplierGood.name;
+  supplierGood.keyword = keyword || supplierGood.keyword;
+  supplierGood.description = description || supplierGood.description;
+  supplierGood.category = category || supplierGood.category;
+  supplierGood.image = image || supplierGood.image;
+  supplierGood.measurementType =
+    measurementType || supplierGood.measurementType;
+  supplierGood.measurementUnit =
+    measurementUnit || supplierGood.measurementUnit;
+  supplierGood.measurementValue =
+    measurementValue || supplierGood.measurementValue;
+  supplierGood.wholePrice = wholePrice || supplierGood.wholePrice;
+  supplierGood.pricePerMeasurementUnit =
+    pricePerMeasurementUnit || supplierGood.pricePerMeasurementUnit;
+  supplierGood.virtualQuantityAvailable =
+    virtualQuantityAvailable || supplierGood.virtualQuantityAvailable;
+  supplierGood.realQuantityAvailable =
+    realQuantityAvailable || supplierGood.realQuantityAvailable;
+  supplierGood.minimunQuantityRequired =
+    minimunQuantityRequired || supplierGood.minimunQuantityRequired;
+  supplierGood.currentlyInUse = currentlyInUse || supplierGood.currentlyInUse;
+  supplierGood.supplier = supplier || supplierGood.supplier;
+
+  // Save the updated supplier good to the database
+  const updatedSupplierGood = await supplierGood.save();
+
+  if (updatedSupplierGood) {
+    res.json({ message: `Supplier good ${name} updated successfully!` });
+  } else {
+    res.status(500).json({ message: "Failed to update supplier good!" });
+  }
 });
 
 // @desc    Delete supplier good by ID
 // @route   DELETE /supplierGoods/:id
 // @access  Private
 const deleteSupplierGood = asyncHandler(async (req, res) => {
-    const { id } = req.params;
+  const { id } = req.params;
 
-    // Fetch the supplier good with the given ID from the database
-    const supplierGood = await SupplierGood.findById(id);
+  // Fetch the supplier good with the given ID from the database
+  const supplierGood = await SupplierGood.findById(id);
 
-    if (!supplierGood) {
-        // If the supplier good is not found, return a 404 status code with a message
-        return res.status(404).json({ message: "Supplier good not found!" });
-    }
+  if (!supplierGood) {
+    // If the supplier good is not found, return a 404 status code with a message
+    return res.status(404).json({ message: "Supplier good not found!" });
+  }
 
-    // Delete the supplier good from the database
-    await supplierGood.deleteOne();
+  // Delete the supplier good from the database
+  await supplierGood.deleteOne();
 
-    res.json({ message: `Supplier good ${supplierGood.name} deleted successfully!` });
+  res.json({
+    message: `Supplier good ${supplierGood.name} deleted successfully!`,
+  });
 });
 
 module.exports = {
-    getSupplierGoods,
-    getSupplierGoodById,
-    getSupplierGoodsBySupplierId,
-    createNewSupplierGood,
-    updateSupplierGood,
-    deleteSupplierGood,
+  getSupplierGoods,
+  getSupplierGoodById,
+  getSupplierGoodsBySupplierId,
+  createNewSupplierGood,
+  updateSupplierGood,
+  deleteSupplierGood,
 };

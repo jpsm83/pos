@@ -34,8 +34,11 @@ const getUserById = asyncHandler(async (req, res) => {
 // @access Private
 const getUsersByBusinessId = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const users = await User.find({ business: id }).select("-password").lean().exec();
-  
+  const users = await User.find({ business: id })
+    .select("-password")
+    .lean()
+    .exec();
+
   if (!users) {
     return res.status(404).json({ message: "No users found!" });
   }
@@ -55,6 +58,8 @@ const createNewUser = asyncHandler(async (req, res) => {
     firstName,
     lastName,
     phoneNumber,
+    active,
+    onDuty,
     business,
   } = req.body;
 
@@ -67,6 +72,8 @@ const createNewUser = asyncHandler(async (req, res) => {
     !firstName ||
     !lastName ||
     !phoneNumber ||
+    active === undefined ||
+    onDuty === undefined ||
     !business
   ) {
     return res.status(400).json({ message: "All fields are required!" });
@@ -90,6 +97,8 @@ const createNewUser = asyncHandler(async (req, res) => {
     firstName,
     lastName,
     phoneNumber,
+    active,
+    onDuty,
     business,
   };
 
@@ -111,7 +120,6 @@ const createNewUser = asyncHandler(async (req, res) => {
 // @access  Private
 const updateUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  console.log(req.params);
   const {
     username,
     photo,
@@ -121,23 +129,28 @@ const updateUser = asyncHandler(async (req, res) => {
     lastName,
     email,
     phoneNumber,
+    address,
+    joinDate,
+    terminateDate,
     active,
     onDuty,
   } = req.body;
 
   // confirm data is not missing
   if (
-    (!id,
-    !username,
-    !email,
+    (!username,
     !role,
     !firstName,
     !lastName,
-    !phoneNumber)
+    !email,
+    !phoneNumber,
+    !joinDate,
+    active === undefined,
+    onDuty === undefined)
   ) {
     return res.status(400).json({
       message:
-        "Username, email, role, firstName, lastName, phoneNumber and business are required!",
+        "Username, role, firstName, lastName, email, phoneNumber, joinDate, active and onDuty are required!",
     });
   }
 
@@ -148,10 +161,18 @@ const updateUser = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "User not found!" });
   }
 
-  // check for duplcates
-  const duplicateUser = await User.findOne({ username }).lean().exec();
-  if (duplicateUser && duplicateUser._id.toString() !== id) {
-    return res.status(409).json({ message: "Username already exists!" });
+  // check for duplicates username
+  const newUsernameAlreadyExist = await User.findOne({
+    _id: { $ne: id },
+    username,
+  })
+    .lean()
+    .exec();
+
+  if (newUsernameAlreadyExist) {
+    return res.status(409).json({
+      message: `Username ${username} already exists!`,
+    });
   }
 
   user.username = username;
@@ -161,8 +182,11 @@ const updateUser = asyncHandler(async (req, res) => {
   user.lastName = lastName;
   user.email = email;
   user.phoneNumber = phoneNumber;
-  user.active = active ? active : user.active;
-  user.onDuty = onDuty ? onDuty : user.onDuty;
+  user.address = address ? address : user.address;
+  user.joinDate = joinDate;
+  user.terminateDate = terminateDate;
+  user.active = active;
+  user.onDuty = onDuty;
 
   // if password is provided, hash it
   if (password) {
