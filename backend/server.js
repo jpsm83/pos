@@ -29,6 +29,8 @@ app.use('/', require('./routes/root'));
 app.use('/business', require('./routes/businessRoutes'));
 app.use('/users', require('./routes/userRoutes'));
 app.use('/pos', require('./routes/posRoutes'));
+app.use('/suppliers', require('./routes/supplierRoutes'));
+app.use('/suppliergoods', require('./routes/supplierGoodsRoutes'));
 
 app.all('*', (req, res) => {
     res.status(404)

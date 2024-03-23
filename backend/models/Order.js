@@ -4,6 +4,7 @@ const orderSchema = new mongoose.Schema(
   {
     orderTime: { type: Date, default: Date.now, required: true },
     totalPrice: { type: Number, required: true },
+    display: this.orderStatus === "Sent" ? true : false,
     billingStatus: {
       type: String,
       enum: ["Open", "Payed", "Wasted", "Cancelled", "Invitation"],

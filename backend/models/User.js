@@ -2,6 +2,10 @@ const mongoose = require("mongoose");
 
 const roles = [
   "Manager",
+  "Operator",
+  "Employee",
+  "Cashier",
+  "Floor Staff",
   "Bartender",
   "Waiter",
   "Head Chef",
@@ -14,6 +18,7 @@ const roles = [
   "Runner",
   "Supervisor",
   "Client",
+  "Table"
 ];
 const userSchema = new mongoose.Schema(
   {

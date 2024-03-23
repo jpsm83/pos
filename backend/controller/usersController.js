@@ -20,7 +20,6 @@ const getUsers = asyncHandler(async (req, res) => {
 // @access  Private
 const getUserById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-
   const user = await User.findById(id).select("-password").lean().exec();
 
   if (!user) {
@@ -30,12 +29,34 @@ const getUserById = asyncHandler(async (req, res) => {
   res.json(user);
 });
 
+// @desc   Get user by bussiness ID
+// @route  GET /users/business/:id
+// @access Private
+const getUsersByBusinessId = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const users = await User.find({ business: id }).select("-password").lean().exec();
+  
+  if (!users) {
+    return res.status(404).json({ message: "No users found!" });
+  }
+
+  res.json(users);
+});
+
 // @desc    Create new user
 // @route   POST /users
 // @access  Private
 const createNewUser = asyncHandler(async (req, res) => {
-  const { username, email, password, role, firstName, lastName, phoneNumber, business } =
-    req.body;
+  const {
+    username,
+    email,
+    password,
+    role,
+    firstName,
+    lastName,
+    phoneNumber,
+    business,
+  } = req.body;
 
   // confirm data is not missing
   if (
@@ -90,7 +111,7 @@ const createNewUser = asyncHandler(async (req, res) => {
 // @access  Private
 const updateUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
-
+  console.log(req.params);
   const {
     username,
     photo,
@@ -102,17 +123,22 @@ const updateUser = asyncHandler(async (req, res) => {
     phoneNumber,
     active,
     onDuty,
-    business,
   } = req.body;
 
   // confirm data is not missing
-  if ((!id, !username, !email, !role, !firstName, !lastName, !phoneNumber, !business)) {
-    return res
-      .status(400)
-      .json({
-        message:
-          "Username, email, role, firstName, lastName, phoneNumber and business are required!",
-      });
+  if (
+    (!id,
+    !username,
+    !email,
+    !role,
+    !firstName,
+    !lastName,
+    !phoneNumber)
+  ) {
+    return res.status(400).json({
+      message:
+        "Username, email, role, firstName, lastName, phoneNumber and business are required!",
+    });
   }
 
   // check for user
@@ -137,7 +163,6 @@ const updateUser = asyncHandler(async (req, res) => {
   user.phoneNumber = phoneNumber;
   user.active = active ? active : user.active;
   user.onDuty = onDuty ? onDuty : user.onDuty;
-  user.business = business ? business : user.business;
 
   // if password is provided, hash it
   if (password) {
@@ -191,6 +216,7 @@ const deleteUser = asyncHandler(async (req, res) => {
 module.exports = {
   getUsers,
   getUserById,
+  getUsersByBusinessId,
   createNewUser,
   updateUser,
   deleteUser,

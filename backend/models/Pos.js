@@ -4,7 +4,6 @@ const STATUS_OPTIONS = ["Occupied", "Reserved", "Bill", "Closed"];
 
 const posSchema = new mongoose.Schema(
   {
-    openedAt: { type: Date, default: Date.now, required: true },
     closedAt: Date,
     guests: { type: Number, required: true },
     clientName: String,

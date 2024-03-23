@@ -21,8 +21,22 @@ const getPosById = asyncHandler(async (req, res) => {
 
   const pos = await Pos.findById(id).lean().exec();
 
-  if (!pos.length) {
+  if (!pos) {
     return res.status(404).json({ message: "Pos not found!" });
+  }
+
+  res.json(pos);
+});
+
+// @desc   Get pos by bussiness ID
+// @route  GET /pos/business/:id
+// @access Private
+const getPosByBusinessId = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const pos = await Pos.find({ business: id }).lean().exec();
+  
+  if (!pos) {
+    return res.status(404).json({ message: "No pos found!" });
   }
 
   res.json(pos);
@@ -32,13 +46,13 @@ const getPosById = asyncHandler(async (req, res) => {
 // @route   POST /pos
 // @access  Private
 const createNewPos = asyncHandler(async (req, res) => {
-  const { openedAt, guests, posNumber, status, business, openedBy } = req.body;
+  const { guests, posNumber, status, business, openedBy } = req.body;
 
   // confirm data is not missing
-  if (!openedAt || !guests || !posNumber || !status || !business || !openedBy) {
+  if (!guests || !posNumber || !status || !business || !openedBy) {
     return res.status(400).json({
       message:
-        "OpenedAt, guests, posNumber, status, business and openedBy are required!",
+        "Guests, posNumber, status, business and openedBy are required!",
     });
   }
 
@@ -55,7 +69,6 @@ const createNewPos = asyncHandler(async (req, res) => {
   }
 
   const posObj = {
-    openedAt,
     guests,
     posNumber,
     status,
@@ -75,12 +88,11 @@ const createNewPos = asyncHandler(async (req, res) => {
 });
 
 // @desc    Update pos
-// @route   PUT /pos/:id
+// @route   PATCH /pos/:id
 // @access  Private
 const updatePos = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { closedAt, clientName, status, closedBy, orders } = req.body;
-  console.log(req.body);
   try {
     // Check for pos
     const pos = await Pos.findById(id);
@@ -121,8 +133,7 @@ const updatePos = asyncHandler(async (req, res) => {
 
     res.json({ message: `Pos ${pos.posNumber} updated successfully!` });
   } catch (error) {
-    console.error("Error updating POS:", error);
-    res.status(500).json({ message: "Internal server error." });
+    res.status(500).json({ message: "Pos update failed!" });
   }
 });
 
@@ -137,11 +148,23 @@ const deletePos = asyncHandler(async (req, res) => {
       return res.status(400).json({ message: "Pos ID is required!" });
     }
 
-    const posToDelete = await Pos.findById(id).exec();
+    const pos = await Pos.findById(id).exec();
 
-    await posToDelete.deleteOne();
+    // check if pos has open orders
+    if (pos.orders.length > 0) {
+      for (let i = 0; i < pos.orders.length; i++) {
+        const order = await Order.findById(pos.orders[i]);
+        if (order.billingStatus === "Open") {
+          return res
+            .status(400)
+            .json({ message: "Cannot delete POS with open orders!" });
+        }
+      }
+    }
 
-    const reply = `Pos ${posToDelete.posNumber} deleted successfully!`;
+    await pos.deleteOne();
+
+    const reply = `Pos ${pos.posNumber} deleted successfully!`;
 
     res.json(reply);
   } catch (error) {
@@ -153,6 +176,7 @@ const deletePos = asyncHandler(async (req, res) => {
 module.exports = {
   getPos,
   getPosById,
+  getPosByBusinessId,
   createNewPos,
   updatePos,
   deletePos,

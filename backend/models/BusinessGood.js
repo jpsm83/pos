@@ -3,17 +3,12 @@
 
 const mongoose = require("mongoose");
 
-const drinks = ['Coffee', 'Soft Drink', 'Juice', 'Beer', 'Wine', 'Spirit', 'Coktail', 'Mixer', 'Drink Upgrade'];
-const foods = ['Starter', 'Appertizer', 'Main', 'Salad', 'Desert', 'Addon'];
-const merchandise = ['Tshirt', 'Cap', 'Mug', 'Keychain', 'Bottle Opener', 'Bag', 'Other'];
-
-const CATEGORIES = drinks + foods + merchandise;
-
 const businessGoodSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true },
     description: { type: String, required: true },
-    category: { type: String, enum: CATEGORIES },
+    category: { type: String, enum: ["Food", "Beverage", "Merchandise", "Service"], required: true },
+    subCategory: { type: String, required: true},
     image: {
       type: String,
       default: function() {
