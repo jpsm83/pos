@@ -12,6 +12,7 @@ const orderSchema = new mongoose.Schema(
     pos: { type: mongoose.Schema.Types.ObjectId, ref: "Pos", required: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     businessGoods: [{ type: mongoose.Schema.Types.ObjectId, ref: "BusinessGood", required: true }],
+    business: [{ type: mongoose.Schema.Types.ObjectId, ref: "Business", required: true }],
   },
   { timestamps: true }
 );

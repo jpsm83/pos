@@ -1,6 +1,3 @@
-// a supplier good is a single product itself, it can be a food or beverage sold by a supplier to a business
-// with supplier goods the business can create it owns business goods, which are the products that the business sells to the clients
-
 const mongoose = require("mongoose");
 
 const measurementSolid = [
@@ -60,14 +57,7 @@ const measurementWeight = [
   "Centigram",
   "Decigram",
 ];
-const measurementService = [
-  "Minute",
-  "Hour",
-  "Day",
-  "Week",
-  "Month",
-  "Task",
-];
+const measurementService = ["Minute", "Hour", "Day", "Week", "Month", "Task"];
 
 const supplierGoodSchema = new mongoose.Schema(
   {
@@ -94,11 +84,9 @@ const supplierGoodSchema = new mongoose.Schema(
     measurementType: {
       type: String,
       enum: ["Solid", "Liquid", "Size", "Distance", "Weight", "Service"],
-      required: true,
     },
     measurementUnit: {
       type: String,
-      required: true,
       enum: {
         values: [
           ...measurementSolid,
@@ -110,16 +98,21 @@ const supplierGoodSchema = new mongoose.Schema(
         ],
       },
     },
-    measurementValue: { type: Number, required: true },
-    wholePrice: { type: Number, required: true },
-    pricePerMeasurementUnit: { type: Number, required: true },
-    virtualQuantityAvailable: { type: Number, default: 0, required: true },
-    realQuantityAvailable: { type: Number, default: 0, required: true },
-    minimunQuantityRequired: { type: Number, required: true },
+    measurementValue: { type: Number },
+    wholePrice: { type: Number },
+    pricePerMeasurementUnit: { type: Number },
+    virtualQuantityAvailable: { type: Number },
+    realQuantityAvailable: { type: Number },
+    minimunQuantityRequired: { type: Number },
     currentlyInUse: { type: Boolean, required: true, default: true },
     supplier: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Supplier",
+      required: true,
+    },
+    business: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Business",
       required: true,
     },
   },

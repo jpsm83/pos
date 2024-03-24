@@ -131,6 +131,8 @@ const updateUser = asyncHandler(async (req, res) => {
     phoneNumber,
     address,
     joinDate,
+    contractHoursWeek,
+    monthlySalary,
     terminateDate,
     active,
     onDuty,
@@ -175,16 +177,18 @@ const updateUser = asyncHandler(async (req, res) => {
     });
   }
 
-  user.username = username;
-  user.photo = photo ? photo : user.photo;
-  user.role = role;
-  user.firstName = firstName;
-  user.lastName = lastName;
-  user.email = email;
-  user.phoneNumber = phoneNumber;
-  user.address = address ? address : user.address;
-  user.joinDate = joinDate;
-  user.terminateDate = terminateDate;
+  user.username = username || user.username;
+  user.photo = photo || user.photo;
+  user.role = role || user.role;
+  user.firstName = firstName || user.firstName;
+  user.lastName = lastName || user.lastName;
+  user.email = email || user.email;
+  user.phoneNumber = phoneNumber || user.phoneNumber;
+  user.address = address || user.address;
+  user.joinDate = joinDate || user.joinDate;
+  contractHoursWeek = contractHoursWeek || contractHoursWeek;
+  monthlySalary = monthlySalary || monthlySalary;
+  user.terminateDate = terminateDate || user.terminateDate;
   user.active = active;
   user.onDuty = onDuty;
 

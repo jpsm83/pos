@@ -6,15 +6,20 @@ const Pos = require("../models/Pos");
 const Supplier = require("../models/Supplier");
 const BusinessGood = require("../models/BusinessGood");
 const SupplierGood = require("../models/SupplierGood");
+const Order = require("../models/Order");
+const Printer = require("../models/Printer");
 
 // @desc    Get all businesses
 // @route   GET /business
 // @access  Private
 const getBusinesses = asyncHandler(async (req, res) => {
+  // fetch all businesses and exclude the password field
   const businesses = await Business.find().select("-password").lean();
+  // if no businesses are found, return a 404 status code with a message
   if (!businesses?.length) {
     return res.status(404).json({ message: "No businesses found!" });
   }
+  //return the businesses
   res.json(businesses);
 });
 
@@ -23,15 +28,13 @@ const getBusinesses = asyncHandler(async (req, res) => {
 // @access  Private
 const getBusinessById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const business = await Business.findById(id)
-    .select("-password")
-    .lean()
-    .exec();
-
+  // fetch the business with the given ID and exclude the password field
+  const business = await Business.findById(id).select("-password").lean();
+  // if the business is not found, return a 404 status code with a message
   if (!business) {
     return res.status(404).json({ message: "Business not found!" });
   }
-
+  // return the business
   res.json(business);
 });
 
@@ -55,7 +58,7 @@ const createNewBusiness = asyncHandler(async (req, res) => {
     subscription,
   } = req.body;
 
-  // confirm data is not missing
+  // check required fields
   if (
     !tradeName ||
     !legalName ||
@@ -67,50 +70,54 @@ const createNewBusiness = asyncHandler(async (req, res) => {
     !postCode ||
     !phoneNumber ||
     !taxNumber ||
-    !contactPerson ||
     !subscription
   ) {
-    return res
-      .status(400)
-      .json({
-        message:
-          "TradeName, legalName, email, password, country, city, address, postCode, phoneNumber, taxNumber and contactPerson are required!",
-      });
+    return res.status(400).json({
+      message:
+        "TradeName, legalName, email, password, country, city, address, postCode, phoneNumber, taxNumber and subscription are required!",
+    });
   }
 
-  // check for duplcates
-  const duplicateBusiness = await Business.findOne({ tradeName }).lean().exec();
+  // check for duplicate legalName, email or taxNumber
+  const duplicateBusiness = await Business.findOne({
+    $or: [{ legalName }, { email }, { taxNumber }],
+  }).lean();
 
   if (duplicateBusiness) {
-    return res.status(409).json({ message: "Business name already exists!" });
+    return res.status(409).json({
+      message: `Business ${legalName}, ${email} or ${taxNumber} already exists!`,
+    });
   }
 
   // hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
+  // create business object with required fields
   const businessObj = {
     tradeName,
     legalName,
     email,
     password: hashedPassword,
     country,
-    region,
     city,
     address,
     postCode,
     phoneNumber,
     taxNumber,
-    contactPerson,
     subscription,
   };
 
-  // create business
-  const newBusiness = await Business.create(businessObj);
+  // conditionally add non-required fields if they exist
+  if (region) businessObj.region = region;
+  if (contactPerson) businessObj.contactPerson = contactPerson;
 
-  if (newBusiness) {
+  // create the business
+  const business = await Business.create(businessObj);
+
+  if (business) {
     res
       .status(201)
-      .json({ message: `Business ${tradeName} created successfully!` });
+      .json({ message: `Business ${legalName} created successfully!` });
   } else {
     res.status(500).json({ message: "Failed to create business!" });
   }
@@ -137,61 +144,74 @@ const updateBusiness = asyncHandler(async (req, res) => {
     subscription,
   } = req.body;
 
-  // confirm data is not missing
+  // check required fields
   if (
-    !id ||
     !tradeName ||
     !legalName ||
     !email ||
+    !password ||
     !country ||
     !city ||
     !address ||
     !postCode ||
     !phoneNumber ||
     !taxNumber ||
-    !contactPerson ||
     !subscription
   ) {
-    return res.status(400).json({ message: "All fields are required!" });
+    return res.status(400).json({
+      message:
+        "TradeName, legalName, email, password, country, city, address, postCode, phoneNumber, taxNumber and subscription are required!",
+    });
   }
 
-  // check for business
-  const business = await Business.findById(id).exec();
-
+  // check business exists
+  const business = await Business.findById(id);
   if (!business) {
     return res.status(404).json({ message: "Business not found!" });
   }
 
-  // check for duplcates
-  const duplicateBusiness = await Business.findOne({ tradeName }).lean().exec();
-  if (duplicateBusiness && duplicateBusiness._id.toString() !== id) {
-    return res.status(409).json({ message: "Business name already exists!" });
+  // check for duplicate legalName, email or taxNumber
+  const duplicateBusiness = await Business.findOne({
+    _id: { $ne: id },
+    $or: [{ legalName }, { email }, { taxNumber }],
+  }).lean();
+
+  if (duplicateBusiness) {
+    return res.status(409).json({
+      message: `Business ${legalName}, ${email} or ${taxNumber} already exists!`,
+    });
   }
 
-  business.tradeName = tradeName || business.tradeName;
-  business.legalName = legalName || business.legalName;
-  business.email = email || business.email;
-  business.country = country || business.country;
-  business.city = city || business.city;
-  business.address = address || business.address;
-  business.postCode = postCode || business.postCode;
-  business.phoneNumber = phoneNumber || business.phoneNumber;
-  business.taxNumber = taxNumber || business.taxNumber;
-  business.contactPerson = contactPerson || business.contactPerson;
-  business.subscription = subscription || business.subscription;
+  // update the business object
+  if (tradeName !== undefined) business.tradeName = tradeName;
+  if (legalName !== undefined) business.legalName = legalName;
+  if (email !== undefined) business.email = email;
+  if (country !== undefined) business.country = country;
+  if (city !== undefined) business.city = city;
+  if (address !== undefined) business.address = address;
+  if (postCode !== undefined) business.postCode = postCode;
+  if (phoneNumber !== undefined) business.phoneNumber = phoneNumber;
+  if (taxNumber !== undefined) business.taxNumber = taxNumber;
+  if (contactPerson !== undefined) business.contactPerson = contactPerson;
+  if (subscription !== undefined) business.subscription = subscription;
 
   // if password is provided, hash it
-  if (password) {
+  if (password !== undefined) {
     business.password = await bcrypt.hash(password, 10);
   }
 
-  if (region || business.region) business.region = region || business.region;
+  // conditionally add non-required fields if they exist
+  if (region !== undefined) business.region = region;
+  if (contactPerson !== undefined) business.contactPerson = contactPerson;
 
+  // save the updated business
   const updatedBusiness = await business.save();
 
-  res.json({
-    message: `Business ${updatedBusiness.tradeName} updated successfully!`,
-  });
+  if (updatedBusiness) {
+    res.json({ message: `Business ${legalName} updated successfully!` });
+  } else {
+    res.status(500).json({ message: "Failed to update business!" });
+  }
 });
 
 // @desc    Delete business
@@ -200,59 +220,30 @@ const updateBusiness = asyncHandler(async (req, res) => {
 const deleteBusiness = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  try {
-    if (!id) {
-      return res.status(400).json({ message: "Business ID is required!" });
-    }
+  // fetch the business with the given ID
+  const business = await Business.findById(id);
 
-    const business = await Business.findById(id).exec();
-
-    if (!business) {
-      return res.status(404).json({ message: "Business not found!" });
-    }
-
-    // Function to delete children data
-    const deleteChildrenData = async (
-      childrenModel,
-      propertyToFind,
-      propertyId
-    ) => {
-      await childrenModel.deleteMany({ [propertyToFind]: propertyId }).exec();
-    };
-
-    // Delete suppliers related data
-    const suppliersIds = business.suppliers;
-    if (suppliersIds.length > 0) {
-      for (let i = 0; i < suppliersIds.length; i++) {
-        await deleteChildrenData(SupplierGood, "supplier", suppliersIds[i]);
-      }
-    }
-
-    // Fetch all suppliers related to the business
-    const suppliers = await Supplier.find({ business: id });
-
-    // Delete all supplier goods related to these suppliers
-    for (let supplier of suppliers) {
-      await SupplierGood.deleteMany({ supplier: supplier.id });
-    }
-
-    // Delete all related data
-    await User.deleteMany({ business: id }).exec();
-    await Pos.deleteMany({ business: id }).exec();
-    await Supplier.deleteMany({ business: id }).exec();
-    await BusinessGood.deleteMany({ business: id }).exec();
-
-    await business.deleteOne();
-
-    const reply = `Business ${business.tradeName} deleted successfully!`;
-
-    res.json(reply);
-  } catch (error) {
-    console.error("Error deleting business:", error);
-    res.status(500).json({ message: "Error deleting business" });
+  // if the business is not found, return a 404 status code with a message
+  if (!business) {
+    return res.status(404).json({ message: "Business not found!" });
   }
+
+  // delete all related data
+  await User.deleteMany({ business: id });
+  await Pos.deleteMany({ business: id });
+  await Supplier.deleteMany({ business: id });
+  await BusinessGood.deleteMany({ business: id });
+  await Order.deleteMany({ business: id });
+  await Printer.deleteMany({ business: id });
+  await SupplierGood.deleteMany({ business: id });
+
+  // delete the business
+  await business.deleteOne();
+
+  res.json({ message: `Business ${business.tradeName} deleted successfully!` });
 });
 
+// export controller functions
 module.exports = {
   getBusinesses,
   getBusinessById,

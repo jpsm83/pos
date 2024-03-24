@@ -32,7 +32,7 @@ app.use('/pos', require('./routes/posRoutes'));
 app.use('/suppliers', require('./routes/supplierRoutes'));
 app.use('/suppliergoods', require('./routes/supplierGoodsRoutes'));
 app.use('/businessgoods', require('./routes/businessGoodsRoutes'));
-app.use('/orders', require('./routes/orderRoutes'));
+// app.use('/orders', require('./routes/orderRoutes'));
 
 app.all('*', (req, res) => {
     res.status(404)

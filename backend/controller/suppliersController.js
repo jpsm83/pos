@@ -6,10 +6,10 @@ const SupplierGood = require("../models/SupplierGood");
 // @route   GET /supplier
 // @access  Private
 const getSuppliers = asyncHandler(async (req, res) => {
-  // Fetch all suppliers from the database
+  // fetch all suppliers
   const suppliers = await Supplier.find().lean();
-  if (!suppliers) {
-    // If no suppliers are found, return a 404 status code with a message
+  // if no suppliers are found, return a 404 status code with a message
+  if (!suppliers.length) {
     return res.status(404).json({ message: "No suppliers found!" });
   }
   // Return the suppliers
@@ -21,16 +21,13 @@ const getSuppliers = asyncHandler(async (req, res) => {
 // @access  Private
 const getSupplierById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-
-  // Fetch the supplier with the given ID from the database
+  // fetch the supplier with the given ID
   const supplier = await Supplier.findById(id).lean();
-
+  // if the supplier is not found, return a 404 status code with a message
   if (!supplier) {
-    // If the supplier is not found, return a 404 status code with a message
     return res.status(404).json({ message: "Supplier not found!" });
   }
-
-  // Return the supplier
+  // return the supplier
   res.json(supplier);
 });
 
@@ -39,13 +36,13 @@ const getSupplierById = asyncHandler(async (req, res) => {
 // @access Private
 const getSupplierByBusinessId = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  // Fetch suppliers with the given business ID from the database
+  // fetch suppliers with the given business ID
   const suppliers = await Supplier.find({ business: id }).lean();
-  if (!suppliers) {
-    // If no suppliers are found, return a 404 status code with a message
+  // if no suppliers are found, return a 404 status code with a message
+  if (!suppliers.length) {
     return res.status(404).json({ message: "No suppliers found!" });
   }
-  // Return the suppliers
+  // return the suppliers
   res.json(suppliers);
 });
 
@@ -54,7 +51,8 @@ const getSupplierByBusinessId = asyncHandler(async (req, res) => {
 // @access  Private
 const createNewSupplier = asyncHandler(async (req, res) => {
   const {
-    name,
+    tradeName,
+    legalName,
     country,
     region,
     city,
@@ -64,12 +62,14 @@ const createNewSupplier = asyncHandler(async (req, res) => {
     phoneNumber,
     taxNumber,
     contactPerson,
+    supplierGoods,
     business,
   } = req.body;
 
-  // Check if all required data is provided
+  // check required fields
   if (
-    !name ||
+    !tradeName ||
+    !legalName ||
     !country ||
     !city ||
     !address ||
@@ -77,42 +77,54 @@ const createNewSupplier = asyncHandler(async (req, res) => {
     !email ||
     !phoneNumber ||
     !taxNumber ||
-    !contactPerson ||
     !business
   ) {
-    return res.status(400).json({ message: "Name, country, city, address, postCode, email, phoneNumber, taxNumber, contactPerson and business are required!" });
+    return res
+      .status(400)
+      .json({
+        message:
+          "TradeName, legalName, country, city, address, postCode, email, phoneNumber, taxNumber and business are required!",
+      });
   }
 
-  // Check if a supplier with the same tax number already exists
-  const duplicateSupplier = await Supplier.findOne({ taxNumber }).lean();
+  // check for duplicate legalName, email or taxNumber
+  const duplicateSupplier = await Supplier.findOne({
+    business: business,
+    $or: [{ legalName }, { email }, { taxNumber }],
+  }).lean();
+
   if (duplicateSupplier) {
-    return res.status(400).json({ message: "Supplier already exists!" });
+    return res.status(409).json({
+      message: `Supplier ${legalName}, ${email} or ${taxNumber} already exists!`,
+    });
   }
 
-  // Create a new supplier object
+  // create supplier object
   const supplierObj = {
-    name,
+    tradeName,
+    legalName,
     country,
-    region,
     city,
     address,
     postCode,
     email,
     phoneNumber,
     taxNumber,
-    contactPerson,
     business,
   };
 
-  // Save the new supplier to the database
-  const newSupplier = await Supplier.create(supplierObj);
+  // conditionally add non-required fields if they exist
+  if (region) supplierObj.region = region;
+  if (contactPerson) supplierObj.contactPerson = contactPerson;
+  if (supplierGoods) supplierObj.supplierGoods = supplierGoods;
 
-  if (newSupplier) {
-    res
-      .status(201)
-      .json({
-        message: `Supplier with tax number ${taxNumber} created successfully!`,
-      });
+  // save supplier
+  const supplier = await Supplier.create(supplierObj);
+
+  if (supplier) {
+    res.status(201).json({
+      message: `Supplier ${legalName} created successfully!`,
+    });
   } else {
     res.status(500).json({ message: "Supplier creation failed!" });
   }
@@ -124,7 +136,8 @@ const createNewSupplier = asyncHandler(async (req, res) => {
 const updateSupplier = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const {
-    name,
+    tradeName,
+    legalName,
     country,
     region,
     city,
@@ -137,32 +150,69 @@ const updateSupplier = asyncHandler(async (req, res) => {
     supplierGoods,
   } = req.body;
 
-  // Fetch the supplier with the given ID from the database
+  // check required fields
+  if (
+    !tradeName ||
+    !legalName ||
+    !country ||
+    !city ||
+    !address ||
+    !postCode ||
+    !email ||
+    !phoneNumber ||
+    !taxNumber
+  ) {
+    return res
+      .status(400)
+      .json({
+        message:
+          "TradeName, legalName, country, city, address, postCode, email, phoneNumber and taxNumber are required!",
+      });
+  }
+
+  // check if supplier exists
   const supplier = await Supplier.findById(id);
   if (!supplier) {
     return res.status(404).json({ message: "Supplier not found!" });
   }
 
-  // Update the supplier's details
-  supplier.name = name || supplier.name;
-  supplier.country = country || supplier.country;
-  supplier.city = city || supplier.city;
-  supplier.address = address || supplier.address;
-  supplier.postCode = postCode || supplier.postCode;
-  supplier.email = email || supplier.email;
-  supplier.phoneNumber = phoneNumber || supplier.phoneNumber;
-  supplier.taxNumber = taxNumber || supplier.taxNumber;
-  supplier.contactPerson = contactPerson || supplier.contactPerson;
-  supplier.supplierGoods = supplierGoods || supplier.supplierGoods;
+  // check for duplicate legalName, email or taxNumber
+  const duplicateSupplier = await Supplier.findOne({
+    _id: { $ne: id },
+    business: supplier.business,
+    $or: [{ legalName }, { email }, { taxNumber }],
+  }).lean();
 
-  if(region || supplier.region) supplier.region = region || supplier.region;
+  if (duplicateSupplier) {
+    return res.status(409).json({
+      message: `Business ${legalName}, ${email} or ${taxNumber} already exists!`,
+    });
+  }
 
-  // Save the updated supplier to the database
-  const updateSupplier = await supplier.save();
+  // Update the supplier fields
+  if (tradeName !== undefined) supplier.tradeName = tradeName;
+  if (legalName !== undefined) supplier.legalName = legalName;
+  if (country !== undefined) supplier.country = country;
+  if (region !== undefined) supplier.region = region;
+  if (city !== undefined) supplier.city = city;
+  if (address !== undefined) supplier.address = address;
+  if (postCode !== undefined) supplier.postCode = postCode;
+  if (email !== undefined) supplier.email = email;
+  if (phoneNumber !== undefined) supplier.phoneNumber = phoneNumber;
+  if (taxNumber !== undefined) supplier.taxNumber = taxNumber;
+  if (contactPerson !== undefined) supplier.contactPerson = contactPerson;
+  if (supplierGoods !== undefined) supplier.supplierGoods = supplierGoods;
 
-  if(updateSupplier) {
-    return res.status(200).json({ message: `Supplier with tax number ${supplier.taxNumber} updated successfully!` });
-  }else{
+  // Save the updated supplier
+  const updatedSupplier = await supplier.save();
+
+  if (updatedSupplier) {
+    return res
+      .status(200)
+      .json({
+        message: `Supplier ${supplier.legalName} updated successfully!`,
+      });
+  } else {
     return res.status(500).json({ message: "Failed to update supplier!" });
   }
 });
@@ -172,20 +222,16 @@ const updateSupplier = asyncHandler(async (req, res) => {
 // @access  Private
 const deleteSupplier = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-
-  // Fetch the supplier with the given ID from the database
+  // fetch the supplier with the given ID
   const supplier = await Supplier.findById(id);
   if (!supplier) {
     return res.status(404).json({ message: "Supplier not found!" });
   }
 
-  // Delete all goods related to the supplier
-  const supplierGoods = await SupplierGood.find({ supplier: id });
-  if (supplierGoods) {
-    await SupplierGood.deleteMany({ supplier: id });
-  }
+  // delete all supplier goods related to the supplier
+  await SupplierGood.deleteMany({ supplier: id });
 
-  // Delete the supplier
+  // delete the supplier
   await supplier.deleteOne();
 
   res.json({

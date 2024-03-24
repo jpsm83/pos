@@ -6,10 +6,13 @@ const Order = require("../models/Order");
 // @route   GET /pos
 // @access  Private
 const getPos = asyncHandler(async (req, res) => {
+  // fetch all pos
   const pos = await Pos.find().lean();
+  // if no pos are found, return a 404 status code with a message
   if (!pos?.length) {
     return res.status(404).json({ message: "No pos found!" });
   }
+  // return the pos
   res.json(pos);
 });
 
@@ -18,13 +21,13 @@ const getPos = asyncHandler(async (req, res) => {
 // @access  Private
 const getPosById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-
-  const pos = await Pos.findById(id).lean().exec();
-
+  // fetch the pos with the given ID
+  const pos = await Pos.findById(id).lean();
+  // if the pos is not found, return a 404 status code with a message
   if (!pos) {
     return res.status(404).json({ message: "Pos not found!" });
   }
-
+  // return the pos
   res.json(pos);
 });
 
@@ -33,12 +36,13 @@ const getPosById = asyncHandler(async (req, res) => {
 // @access Private
 const getPosByBusinessId = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const pos = await Pos.find({ business: id }).lean().exec();
-
-  if (!pos) {
+  // fetch pos with the given business ID
+  const pos = await Pos.find({ business: id }).lean();
+  // if no pos are found, return a 404 status code with a message
+  if (!pos.length) {
     return res.status(404).json({ message: "No pos found!" });
   }
-
+  // return the pos
   res.json(pos);
 });
 
@@ -46,43 +50,48 @@ const getPosByBusinessId = asyncHandler(async (req, res) => {
 // @route   POST /pos
 // @access  Private
 const createNewPos = asyncHandler(async (req, res) => {
-  const { guests, posNumber, status, business, openedBy } = req.body;
+  const { guests, clientName, posReferenceCode, status, business, openedBy } =
+    req.body;
 
-  // confirm data is not missing
-  if (!guests || !posNumber || !status || !business || !openedBy) {
+  // check required fields
+  if (!posReferenceCode || !status || !business || !openedBy) {
     return res.status(400).json({
-      message: "Guests, posNumber, status, business and openedBy are required!",
+      message: "PosNumber, status, business and openedBy are required!",
     });
   }
 
-  // check for duplcates
+  // check for pos already exists
   const duplicatePos = await Pos.findOne({
-    posNumber,
+    posReferenceCode,
+    business: business,
     status: { $ne: "Closed" },
-  })
-    .lean()
-    .exec();
+  }).lean();
 
   if (duplicatePos) {
-    return res
-      .status(409)
-      .json({ message: "Pos already exists and it is opened!" });
+    return res.status(409).json({
+      message: `Pos ${posReferenceCode} already exists and it is not closed!`,
+    });
   }
 
+  // create a pos object with required fields
   const posObj = {
-    guests,
-    posNumber,
+    posReferenceCode,
     status,
     business,
     openedBy,
   };
 
-  const newPos = await Pos.create(posObj);
+  // conditionally add non-required fields if they exist
+  if (guests) posObj.guests = guests;
+  if (clientName) posObj.clientName = clientName;
 
-  if (newPos) {
+  // create the pos
+  const pos = await Pos.create(posObj);
+
+  if (pos) {
     return res
       .status(201)
-      .json({ message: `Pos ${posNumber} created successfully!` });
+      .json({ message: `Pos ${posReferenceCode} created successfully!` });
   } else {
     return res.status(500).json({ message: "Pos creation failed!" });
   }
@@ -93,66 +102,83 @@ const createNewPos = asyncHandler(async (req, res) => {
 // @access  Private
 const updatePos = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { closedAt, guest, clientName, posNumber, status, closedBy, orders } =
-    req.body;
-  try {
-    // Check for pos
-    const pos = await Pos.findById(id);
+  const {
+    closedAt,
+    guest,
+    clientName,
+    posReferenceCode,
+    status,
+    closedBy,
+    orders,
+  } = req.body;
 
-    if (!pos) {
-      return res.status(404).json({ message: "Pos not found!" });
-    }
+  // check required fields
+  if (!posReferenceCode || !status || !business || !openedBy) {
+    return res.status(400).json({
+      message: "PosNumber, status, business and openedBy are required!",
+    });
+  }
 
-    // check for duplicates posNumbers
-    const newPosNumberAlreadyExist = await Pos.findOne({
-      _id: { $ne: id },
-      posNumber,
-      status: { $ne: "Closed" },
-    })
-      .lean()
-      .exec();
+  // check if pos exists
+  const pos = await Pos.findById(id);
+  if (!pos) {
+    return res.status(404).json({ message: "Pos not found!" });
+  }
 
-    if (newPosNumberAlreadyExist) {
-      return res
-        .status(409)
-        .json({ message: "Pos already exists and it is opened!" });
-    }
+  // check for duplicates posReferenceCode
+  const duplicatePosReferenceCode = await Pos.findOne({
+    _id: { $ne: id },
+    posReferenceCode,
+    business: pos.business,
+    status: { $ne: "Closed" },
+  }).lean();
+  if (duplicatePosReferenceCode) {
+    return res
+      .status(409)
+      .json({
+        message: `Pos ${posReferenceCode} already exists and it is not closed!`,
+      });
+  }
 
-    pos.clientName = clientName ? clientName : pos.clientName;
-    pos.guests = guest ? guest : pos.guests;
-    pos.posNumber = posNumber ? posNumber : pos.posNumber;
-    pos.status = status ? status : pos.status;
-    pos.orders = orders ? orders : pos.orders;
+  // update pos fields
+  if (guest !== undefined) pos.guests = guest;
+  if (clientName !== undefined) pos.clientName = clientName;
+  if (posReferenceCode !== undefined) pos.posReferenceCode = posReferenceCode;
+  if (status !== undefined) pos.status = status;
+  if (orders !== undefined) pos.orders = orders;
 
-    // Check if there are open orders before closing the pos
-    if (status === "Closed") {
-      if (pos.orders.length > 0) {
-        for (let i = 0; i < pos.orders.length; i++) {
-          const order = await Order.findById(pos.orders[i]);
-          if (order.billingStatus === "Open") {
-            return res
-              .status(400)
-              .json({ message: "Cannot close POS with open orders!" });
-          }
+  // check if there are open orders before closing the pos
+  if (status === "Closed") {
+    if (pos.orders.length > 0) {
+      for (let i = 0; i < pos.orders.length; i++) {
+        const order = await Order.findById(pos.orders[i]);
+        if (order.billingStatus === "Open") {
+          return res
+            .status(400)
+            .json({ message: "Cannot close POS with open orders!" });
         }
       }
-      // For closed status, ensure closedAt and closedBy are provided
-      if (!closedAt || !closedBy) {
-        return res.status(400).json({
-          message: "ClosedAt and closedBy are required to close a POS!",
-        });
-      }
-      pos.status = "Closed";
-      pos.closedAt = closedAt;
-      pos.closedBy = closedBy;
     }
+    // for closed status, ensure closedAt and closedBy are provided
+    if (!closedAt || !closedBy) {
+      return res.status(400).json({
+        message: "ClosedAt and closedBy are required to close a POS!",
+      });
+    }
+    pos.status = "Closed";
+    pos.closedAt = closedAt;
+    pos.closedBy = closedBy;
+  }
 
-    // Save and return the updated pos
-    await pos.save();
+  // save the updated pos
+  const updatedPos = await pos.save();
 
-    res.json({ message: `Pos ${pos.posNumber} updated successfully!` });
-  } catch (error) {
-    res.status(500).json({ message: "Pos update failed!" });
+  if (updatedPos) {
+    return res
+      .status(200)
+      .json({ message: `Pos ${posReferenceCode} updated successfully!` });
+  } else {
+    return res.status(500).json({ message: "Pos update failed!" });
   }
 });
 
@@ -161,37 +187,28 @@ const updatePos = asyncHandler(async (req, res) => {
 // @access  Private
 const deletePos = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  // fetch the pos with the given ID
+  const pos = await Pos.findById(id).exec();
 
-  try {
-    if (!id) {
-      return res.status(400).json({ message: "Pos ID is required!" });
-    }
-
-    const pos = await Pos.findById(id).exec();
-
-    // check if pos has open orders
-    if (pos.orders.length > 0) {
-      for (let i = 0; i < pos.orders.length; i++) {
-        const order = await Order.findById(pos.orders[i]);
-        if (order.billingStatus === "Open") {
-          return res
-            .status(400)
-            .json({ message: "Cannot delete POS with open orders!" });
-        }
+  // check if pos has open orders
+  if (pos.orders.length > 0) {
+    for (let i = 0; i < pos.orders.length; i++) {
+      const order = await Order.findById(pos.orders[i]);
+      if (order.billingStatus === "Open") {
+        return res
+          .status(400)
+          .json({ message: "Cannot delete POS with open orders!" });
       }
     }
-
-    await pos.deleteOne();
-
-    const reply = `Pos ${pos.posNumber} deleted successfully!`;
-
-    res.json(reply);
-  } catch (error) {
-    console.error("Error deleting POS:", error);
-    res.status(500).json({ message: "Internal server error." });
   }
+
+  // delete the pos
+  await pos.deleteOne();
+
+  res.json({ message: `Pos ${pos.posReferenceCode} deleted successfully!` });
 });
 
+// export controller functions
 module.exports = {
   getPos,
   getPosById,

@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const businessGoodsController = require('../controllers/businessGoodsController');
+const businessGoodsController = require('../controller/businessGoodsController');
 
 router.route('/')
     .get(businessGoodsController.getBusinessGoods)
-    .post(businessGoodsController.addBusinessGood);
+    .post(businessGoodsController.createNewBusinessGood);
 
 router.route('/business/:id')
     .get(businessGoodsController.getBusinessGoodsByBusinessId);
